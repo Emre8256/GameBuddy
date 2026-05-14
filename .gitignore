@@ -1,0 +1,64 @@
+# OS
+.DS_Store
+Thumbs.db
+db.lock
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.factorypath
+.nb-gradle/
+
+# Node / React Native / Expo
+node_modules/
+gamebuddy-mobile/node_modules/
+.expo/
+gamebuddy-mobile/.expo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm/
+package-lock.json
+!gamebuddy-mobile/package-lock.json
+
+# Java / Maven (Backend)
+target/
+gamebuddy-backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/wrapper/maven-wrapper.jar
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env.local
+
+# Logs and databases
+logs/
+*.log
+*.sql
+*.sqlite
+
+# Local configuration
+application.properties
+!gamebuddy-backend/src/main/resources/application.properties
+# Note: Usually we ignore real application.properties and keep a template, 
+# but for now I'll ensure we don't accidentally ignore the main one unless desired.
+# Actually, application-local.properties is a better candidate for ignoring.
+application-local.properties
