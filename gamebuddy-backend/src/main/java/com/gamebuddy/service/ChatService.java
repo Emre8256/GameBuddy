@@ -52,7 +52,8 @@ public class ChatService {
             throw new RuntimeException("You can only message users who are your friends. Send a friend request first.");
         }
         if (!"ACCEPTED".equals(status)) {
-            throw new RuntimeException("You can only message users who are your friends. Waiting for friend request to be accepted.");
+            throw new RuntimeException(
+                    "You can only message users who are your friends. Waiting for friend request to be accepted.");
         }
     }
 
@@ -82,6 +83,7 @@ public class ChatService {
                 .receiverId(receiver.getId())
                 .content(savedMessage.getContent())
                 .timestamp(savedMessage.getTimestamp())
+                .isRead(savedMessage.isRead())
                 .build();
     }
 
@@ -95,34 +97,53 @@ public class ChatService {
 
         List<Message> messages = messageRepository.findChatHistory(currentUser, targetUser);
 
+        // Mesajları okundu olarak işaretle
+        messages.stream()
+                .filter(m -> m.getReceiver().getId().equals(currentUser.getId()) && !m.isRead())
+                .forEach(m -> {
+                    m.setRead(true);
+                    messageRepository.save(m);
+                });
+
         return messages.stream().map(m -> MessageResponse.builder()
                 .id(m.getId())
                 .senderId(m.getSender().getId())
                 .receiverId(m.getReceiver().getId())
                 .content(m.getContent())
                 .timestamp(m.getTimestamp())
+                .isRead(m.isRead())
                 .build()).collect(Collectors.toList());
     }
 
-public List<PlayerMatchResponse> getInteractedUsers() {
+    public List<PlayerMatchResponse> getInteractedUsers() {
         User currentUser = getAuthenticatedUser();
         List<User> users = messageRepository.findInteractedUsers(currentUser);
-        
+
         // Sadece arkadaş olan kullanıcıları filtrele
         List<User> friends = users.stream()
-            .filter(u -> !u.getId().equals(currentUser.getId()))
-            .filter(u -> {
-                java.util.Optional<Friendship> f1 = friendshipRepository.findByUser1AndUser2(currentUser, u);
-                java.util.Optional<Friendship> f2 = friendshipRepository.findByUser1AndUser2(u, currentUser);
-                String status = f1.map(Friendship::getStatus).orElseGet(() -> f2.map(Friendship::getStatus).orElse(null));
-                return "ACCEPTED".equals(status);
-            })
-            .collect(Collectors.toList());
-        
-        return friends.stream().map(u -> PlayerMatchResponse.builder()
-                .userId(u.getId())
-                .username(u.getUsername())
-                .status(u.getProfile() != null && u.getProfile().getStatus() != null ? u.getProfile().getStatus() : "Offline")
-                .build()).collect(Collectors.toList());
+                .filter(u -> !u.getId().equals(currentUser.getId()))
+                .filter(u -> {
+                    java.util.Optional<Friendship> f1 = friendshipRepository.findByUser1AndUser2(currentUser, u);
+                    java.util.Optional<Friendship> f2 = friendshipRepository.findByUser1AndUser2(u, currentUser);
+                    String status = f1.map(Friendship::getStatus)
+                            .orElseGet(() -> f2.map(Friendship::getStatus).orElse(null));
+                    return "ACCEPTED".equals(status);
+                })
+                .collect(Collectors.toList());
+
+        return friends.stream().map(u -> {
+            Message lastMsg = messageRepository.findLastMessage(currentUser, u);
+            int unread = messageRepository.countUnreadMessages(u, currentUser);
+
+            return PlayerMatchResponse.builder()
+                    .userId(u.getId())
+                    .username(u.getUsername())
+                    .avatarUrl(u.getProfile() != null ? u.getProfile().getAvatarUrl() : null)
+                    .lookingForGroup(u.getProfile() != null && u.getProfile().isLookingForGroup())
+                    .lastMessage(lastMsg != null ? lastMsg.getContent() : null)
+                    .lastMessageTime(lastMsg != null ? lastMsg.getTimestamp() : null)
+                    .unreadCount(unread)
+                    .build();
+        }).collect(Collectors.toList());
     }
 }

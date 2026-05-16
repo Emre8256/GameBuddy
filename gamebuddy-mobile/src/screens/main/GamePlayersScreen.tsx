@@ -79,7 +79,7 @@ const GamePlayersScreen = ({ route, navigation }: any) => {
             return (
                 <TouchableOpacity
                     style={styles.actionButtonSuccess}
-                    onPress={() => navigation.navigate('ChatRoom', { userId: item.userId, username: item.username, avatarUrl: item.avatarUrl, status: item.status })}
+                    onPress={() => navigation.navigate('ChatRoom', { userId: item.userId, username: item.username, avatarUrl: item.avatarUrl, lookingForGroup: item.lookingForGroup })}
                 >
                     <Ionicons name="chatbubble-outline" size={18} color="#FFFFFF" />
                 </TouchableOpacity>
@@ -138,12 +138,12 @@ const GamePlayersScreen = ({ route, navigation }: any) => {
                 />
                 <View style={styles.userInfo}>
                     <Text style={styles.username}>{item.username}</Text>
-                    <View style={styles.statusRow}>
-                        <View style={[styles.statusDot, item.status === 'Online' ? styles.dotOnline : item.status === 'In-Game' ? styles.dotInGame : styles.dotOffline]} />
-                        <Text style={styles.statusText}>
-                            {item.status === 'Online' ? 'Müsait' : item.status === 'In-Game' ? 'Oyunda' : 'Çevrimdışı'}
-                        </Text>
-                    </View>
+                    {item.lookingForGroup && (
+                        <View style={styles.lfgBadge}>
+                            <View style={styles.miniDot} />
+                            <Text style={styles.lfgText}>Takım Arkadaşı Arıyor</Text>
+                        </View>
+                    )}
                     <Text style={styles.subText}>Ortak Oyunlar: {item.commonGames?.length || 0}</Text>
                 </View>
             </TouchableOpacity>
@@ -248,12 +248,9 @@ const styles = StyleSheet.create({
         color: '#F8FAFC', 
         marginBottom: 2,
     },
-    statusRow: { flexDirection: 'row', alignItems: 'center' },
-    statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-    dotOnline: { backgroundColor: '#10B981' },
-    dotInGame: { backgroundColor: '#F59E0B' },
-    dotOffline: { backgroundColor: '#64748B' },
-    statusText: { fontSize: 13, color: '#CBD5E1', fontWeight: '600' },
+    lfgBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start', marginTop: 2 },
+    miniDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginRight: 6 },
+    lfgText: { fontSize: 11, color: '#10B981', fontWeight: '800', textTransform: 'uppercase' },
     subText: { fontSize: 12, color: '#94A3B8', marginTop: 4, fontWeight: '500' },
     actionContainer: { marginLeft: 10 },
     actionButtonAdd: {

@@ -103,7 +103,7 @@ public class FriendshipService {
                     .userId(requester.getId())
                     .username(requester.getUsername())
                     .avatarUrl(requester.getProfile() != null ? requester.getProfile().getAvatarUrl() : null)
-                    .status(requester.getProfile() != null && requester.getProfile().getStatus() != null ? requester.getProfile().getStatus() : "Offline")
+                    .lookingForGroup(requester.getProfile() != null && requester.getProfile().isLookingForGroup())
                     .requestType("received")
                     .build();
         }).collect(Collectors.toList());
@@ -125,7 +125,7 @@ public class FriendshipService {
                     .userId(friend.getId())
                     .username(friend.getUsername())
                     .avatarUrl(friend.getProfile() != null ? friend.getProfile().getAvatarUrl() : null)
-                    .status(friend.getProfile() != null && friend.getProfile().getStatus() != null ? friend.getProfile().getStatus() : "Offline")
+                    .lookingForGroup(friend.getProfile() != null && friend.getProfile().isLookingForGroup())
                     .requestType("accepted")
                     .build());
         }
@@ -137,7 +137,7 @@ public class FriendshipService {
                     .userId(friend.getId())
                     .username(friend.getUsername())
                     .avatarUrl(friend.getProfile() != null ? friend.getProfile().getAvatarUrl() : null)
-                    .status(friend.getProfile() != null && friend.getProfile().getStatus() != null ? friend.getProfile().getStatus() : "Offline")
+                    .lookingForGroup(friend.getProfile() != null && friend.getProfile().isLookingForGroup())
                     .requestType("accepted")
                     .build());
         }

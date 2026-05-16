@@ -11,7 +11,7 @@ public class DiscoverPlayerResponse {
     private Long userId;
     private String username;
     private List<String> commonGames;
-    private String status;
+    private boolean lookingForGroup;
     private String avatarUrl;
     private String friendshipStatus; // NONE, PENDING, PENDING_RECEIVED, ACCEPTED, SELF
 }

@@ -10,6 +10,6 @@ public class FriendshipRequest {
     private Long userId;
     private String username;
     private String avatarUrl;
-    private String status;
+    private boolean lookingForGroup;
     private String requestType; // "sent" or "received"
 }

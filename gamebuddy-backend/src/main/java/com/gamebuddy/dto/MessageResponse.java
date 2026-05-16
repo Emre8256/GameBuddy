@@ -13,4 +13,5 @@ public class MessageResponse {
     private Long receiverId;
     private String content;
     private LocalDateTime timestamp;
+    private boolean isRead;
 }

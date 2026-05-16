@@ -11,6 +11,9 @@ public class PlayerMatchResponse {
     private Long userId;
     private String username;
     private List<String> commonGames;
-    private String status;
+    private boolean lookingForGroup;
     private String avatarUrl;
+    private String lastMessage;
+    private java.time.LocalDateTime lastMessageTime;
+    private Integer unreadCount;
 }

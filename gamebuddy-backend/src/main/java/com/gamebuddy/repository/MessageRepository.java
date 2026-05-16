@@ -17,4 +17,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     @Query("SELECT DISTINCT u FROM User u WHERE u IN (SELECT m.sender FROM Message m WHERE m.receiver = :user) OR u IN (SELECT m.receiver FROM Message m WHERE m.sender = :user)")
     List<User> findInteractedUsers(@Param("user") User user);
+
+    @Query("SELECT m FROM Message m WHERE (m.sender = :user1 AND m.receiver = :user2) OR (m.sender = :user2 AND m.receiver = :user1) ORDER BY m.timestamp DESC LIMIT 1")
+    Message findLastMessage(@Param("user1") User user1, @Param("user2") User user2);
+
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.sender = :sender AND m.receiver = :receiver AND m.isRead = false")
+    int countUnreadMessages(@Param("sender") User sender, @Param("receiver") User receiver);
 }

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from './apiConfig';
 
-const API_URL = 'http://192.168.0.105:8080/api/profile';
+const API_URL = `${BASE_URL}/profile`;
 
 const getAuthHeaders = async () => {
     const token = await AsyncStorage.getItem('userToken');
@@ -12,10 +13,10 @@ const getAuthHeaders = async () => {
     };
 };
 
-export const updateProfile = async (bio: string, favoriteGames: string, avatarUrl: string, status: string, playStyle?: string | null, topThreeGames?: string): Promise<any> => {
+export const updateProfile = async (bio: string, favoriteGames: string, avatarUrl: string, lookingForGroup: boolean, playStyle?: string | null, topThreeGames?: string): Promise<any> => {
     try {
         const config = await getAuthHeaders();
-        const response = await axios.put(API_URL, { bio, favoriteGames, avatarUrl, status, playStyle, topThreeGames }, config);
+        const response = await axios.put(API_URL, { bio, favoriteGames, avatarUrl, lookingForGroup, playStyle, topThreeGames }, config);
         return response.data;
     } catch (error: any) {
         throw error.response?.data?.error || 'Profil güncellenirken bir hata oluştu.';
@@ -50,5 +51,16 @@ export const discoverPlayers = async (game?: string): Promise<any> => {
         return response.data; // List<PlayerMatchResponse>
     } catch (error: any) {
         throw error.response?.data?.error || 'Oyuncular getirilirken bir hata oluştu.';
+    }
+};
+
+export const getGameCounts = async (): Promise<Record<string, number>> => {
+    try {
+        const config = await getAuthHeaders();
+        const response = await axios.get(`${API_URL}/game-counts`, config);
+        return response.data;
+    } catch (error: any) {
+        console.error('Error fetching game counts:', error);
+        return {};
     }
 };

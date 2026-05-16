@@ -31,6 +31,7 @@ public class Profile {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    // Online, Offline vb.
-    private String status;
+    @Builder.Default
+    @Column(name = "looking_for_group")
+    private boolean lookingForGroup = false;
 }

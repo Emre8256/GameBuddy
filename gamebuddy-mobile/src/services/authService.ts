@@ -1,8 +1,8 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from './apiConfig';
 
-// Android Emülatör üzerinde test edildiği varsayılarak localhost 10.0.2.2 olarak ayarlanmıştır.
-const API_URL = 'http://192.168.0.105:8080/api/auth'; 
+const API_URL = `${BASE_URL}/auth`; 
 
 export const login = async (email: string, password: string): Promise<any> => {
     try {

@@ -1,16 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { POPULAR_GAMES } from '../../utils/games';
+import { getGameCounts } from '../../services/profileService';
 
 const DiscoverScreen = ({ navigation }: any) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [gameCounts, setGameCounts] = useState<Record<string, number>>({});
+
+    const fetchCounts = async () => {
+        const counts = await getGameCounts();
+        setGameCounts(counts);
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchCounts();
+        }, [])
+    );
 
     const filteredGames = POPULAR_GAMES.filter(game => 
         game.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const getPlayerCount = (gameName: string, baseCount: number) => {
+        // Veritabanından gelen verilerde büyük/küçük harf duyarlılığını ortadan kaldıralım
+        const realCount = Object.entries(gameCounts).find(
+            ([key]) => key.toLowerCase() === gameName.toLowerCase()
+        )?.[1] || 0;
+        
+        return realCount;
+    };
 
     const renderItem = ({ item }: { item: any }) => (
         <TouchableOpacity 
@@ -34,7 +57,7 @@ const DiscoverScreen = ({ navigation }: any) => {
                     <View style={styles.playerCountRow}>
                         <Ionicons name="people" size={12} color="#10B981" />
                         <Text style={styles.playerCountText}>
-                            {item.activePlayers?.toLocaleString()} Oyuncu Hazır
+                            {getPlayerCount(item.name, item.activePlayers)} Oyuncu Hazır
                         </Text>
                     </View>
                 </LinearGradient>

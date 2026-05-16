@@ -36,4 +36,8 @@ public class Message {
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime timestamp;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean isRead = false;
 }

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Image, TouchableOpacity, ScrollView, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image, TouchableOpacity, ScrollView, Alert, Modal, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserProfile } from '../../services/profileService';
 import { sendFriendRequest, acceptFriendRequest, declineFriendRequest, removeFriend } from '../../services/friendshipService';
+import { POPULAR_GAMES } from '../../utils/games';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const PublicProfileScreen = ({ route, navigation }: any) => {
     const { userId } = route.params;
@@ -97,7 +99,7 @@ const PublicProfileScreen = ({ route, navigation }: any) => {
                 <View style={styles.multiActionContainer}>
                     <TouchableOpacity
                         style={[styles.multiActionButton, { backgroundColor: '#3B82F6', flex: 0.7 }]}
-                        onPress={() => navigation.navigate('ChatRoom', { userId: profile.userId, username: profile.username, avatarUrl: profile.avatarUrl, status: profile.status })}
+                        onPress={() => navigation.navigate('ChatRoom', { userId: profile.userId, username: profile.username, avatarUrl: profile.avatarUrl, lookingForGroup: profile.lookingForGroup })}
                         disabled={actionLoading}
                         activeOpacity={0.7}
                     >
@@ -180,6 +182,10 @@ const PublicProfileScreen = ({ route, navigation }: any) => {
 
     const gamesList = profile.favoriteGames ? profile.favoriteGames.split(',').map((g: string) => g.trim()).filter((g: string) => g.length > 0) : [];
 
+    const getGameInfo = (gameName: string) => {
+        return POPULAR_GAMES.find(g => g.name.toLowerCase() === gameName.toLowerCase());
+    };
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <View style={styles.header}>
@@ -188,9 +194,9 @@ const PublicProfileScreen = ({ route, navigation }: any) => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView 
+            <ScrollView
                 style={{ flex: 1 }}
-                contentContainerStyle={styles.scrollContent} 
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.profileSection}>
@@ -200,10 +206,10 @@ const PublicProfileScreen = ({ route, navigation }: any) => {
                     />
                     <Text style={styles.usernameText}>{profile.username}</Text>
 
-                    <View style={styles.statusBadge}>
-                        <View style={[styles.statusDot, profile.status === 'Online' ? styles.dotOnline : profile.status === 'In-Game' ? styles.dotInGame : styles.dotOffline]} />
-                        <Text style={styles.statusBadgeText}>
-                            {profile.status === 'Online' ? 'Müsait' : profile.status === 'In-Game' ? 'Oyunda' : 'Çevrimdışı'}
+                    <View style={[styles.statusBadge, { backgroundColor: profile.lookingForGroup ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)', borderColor: profile.lookingForGroup ? 'rgba(16, 185, 129, 0.2)' : 'rgba(100, 116, 139, 0.2)', borderWidth: 1 }]}>
+                        <View style={[styles.statusDot, { backgroundColor: profile.lookingForGroup ? '#10B981' : '#64748B' }]} />
+                        <Text style={[styles.statusBadgeText, { color: profile.lookingForGroup ? '#10B981' : '#94A3B8' }]}>
+                            {profile.lookingForGroup ? 'Takım Arkadaşı Arıyor' : 'Sohbet Modu'}
                         </Text>
                     </View>
                 </View>
@@ -214,15 +220,29 @@ const PublicProfileScreen = ({ route, navigation }: any) => {
                 </View>
 
                 <View style={styles.infoBox}>
-                    <Text style={styles.sectionTitle}>Oynadığı Oyunlar</Text>
-                    <View style={styles.tagsContainer}>
-                        {gamesList.map((game: string, index: number) => (
-                            <View key={index} style={styles.tag}>
-                                <Text style={styles.tagText}>{game}</Text>
-                            </View>
-                        ))}
+                    <Text style={styles.sectionTitle}>Oynanan Oyunlar</Text>
+                    <View style={styles.gamesGrid}>
+                        {gamesList.map((gameName: string, index: number) => {
+                            const gameInfo = getGameInfo(gameName);
+                            return (
+                                <View key={index} style={styles.gameCard}>
+                                    <ImageBackground
+                                        source={{ uri: gameInfo?.image || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=500' }}
+                                        style={styles.gameCardImage}
+                                        imageStyle={{ borderRadius: 12 }}
+                                    >
+                                        <LinearGradient
+                                            colors={['transparent', 'rgba(0,0,0,0.8)']}
+                                            style={styles.gameCardGradient}
+                                        >
+                                            <Text style={styles.gameCardName} numberOfLines={1}>{gameName}</Text>
+                                        </LinearGradient>
+                                    </ImageBackground>
+                                </View>
+                            );
+                        })}
                         {gamesList.length === 0 && (
-                            <Text style={styles.bioText}>Henüz oyun eklenmemiş.</Text>
+                            <Text style={styles.bioText}>Henüz favori oyun eklenmemiş.</Text>
                         )}
                     </View>
                 </View>
@@ -272,13 +292,37 @@ const styles = StyleSheet.create({
     infoBox: { backgroundColor: '#1E293B', borderRadius: 20, padding: 25, marginBottom: 20 },
     sectionTitle: { fontSize: 20, fontWeight: '900', color: '#F8FAFC', marginBottom: 15 },
     bioText: { fontSize: 16, color: '#94A3B8', lineHeight: 24 },
-    tagsContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-    tag: { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, marginRight: 10, marginBottom: 10 },
-    tagText: { color: '#60A5FA', fontSize: 14, fontWeight: 'bold' },
-    footer: { 
-        padding: 20, 
-        backgroundColor: '#0F172A', 
-        borderTopWidth: 1, 
+    gamesGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-start',
+        marginHorizontal: -5
+    },
+    gameCard: {
+        width: '33.33%',
+        aspectRatio: 0.8,
+        padding: 5
+    },
+    gameCardImage: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'flex-end'
+    },
+    gameCardGradient: {
+        padding: 8,
+        borderBottomLeftRadius: 12,
+        borderBottomRightRadius: 12
+    },
+    gameCardName: {
+        color: '#FFFFFF',
+        fontSize: 10,
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
+    footer: {
+        padding: 20,
+        backgroundColor: '#0F172A',
+        borderTopWidth: 1,
         borderTopColor: '#1E293B',
         zIndex: 10,
         elevation: 10,

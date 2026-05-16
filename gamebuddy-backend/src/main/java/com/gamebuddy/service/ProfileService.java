@@ -15,6 +15,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -51,7 +53,7 @@ public class ProfileService {
         profile.setBio(request.getBio());
         profile.setFavoriteGames(request.getFavoriteGames());
         profile.setAvatarUrl(request.getAvatarUrl());
-        profile.setStatus(request.getStatus());
+        profile.setLookingForGroup(request.isLookingForGroup());
 
         profileRepository.save(profile);
     }
@@ -77,7 +79,7 @@ public class ProfileService {
                 .bio(profile != null ? profile.getBio() : "")
                 .favoriteGames(profile != null ? profile.getFavoriteGames() : "")
                 .avatarUrl(profile != null ? profile.getAvatarUrl() : "")
-                .status(profile != null && profile.getStatus() != null ? profile.getStatus() : "Offline")
+                .lookingForGroup(profile != null && profile.isLookingForGroup())
                 .friendshipStatus(friendshipStatus)
                 .build();
     }
@@ -123,7 +125,8 @@ public class ProfileService {
             if (otherUser.getId().equals(currentUser.getId())) continue;
 
             Profile otherProfile = otherUser.getProfile();
-            if (otherProfile == null || otherProfile.getFavoriteGames() == null) continue;
+            // Sadece takım arkadaşı arayanları göster
+            if (otherProfile == null || !otherProfile.isLookingForGroup() || otherProfile.getFavoriteGames() == null) continue;
 
             String otherGamesStr = otherProfile.getFavoriteGames().toLowerCase();
             List<String> otherUserGames = Arrays.stream(otherGamesStr.split(","))
@@ -156,7 +159,7 @@ public class ProfileService {
                     .userId(otherUser.getId())
                     .username(otherUser.getUsername())
                     .commonGames(commonGames)
-                    .status(otherProfile.getStatus() != null ? otherProfile.getStatus() : "Offline")
+                    .lookingForGroup(otherProfile.isLookingForGroup())
                     .avatarUrl(otherProfile.getAvatarUrl())
                     .friendshipStatus(friendshipStatus)
                     .build());
@@ -166,5 +169,32 @@ public class ProfileService {
         matchResponses.sort((m1, m2) -> Integer.compare(m2.getCommonGames().size(), m1.getCommonGames().size()));
 
         return matchResponses;
+    }
+
+    public Map<String, Long> getGameCounts() {
+        User currentUser = getAuthenticatedUser();
+        List<Profile> profiles = profileRepository.findAll();
+        Map<String, Long> counts = new HashMap<>();
+
+        for (Profile profile : profiles) {
+            // Kendisini sayma
+            if (profile.getUser() != null && profile.getUser().getId().equals(currentUser.getId())) {
+                continue;
+            }
+
+            // Sadece 'Takım Arkadaşı Arıyorum' (true) olanları say
+            if (profile.isLookingForGroup()) {
+                if (profile.getFavoriteGames() != null && !profile.getFavoriteGames().isEmpty()) {
+                    String[] games = profile.getFavoriteGames().split(",");
+                    for (String game : games) {
+                        String trimmedGame = game.trim();
+                        if (!trimmedGame.isEmpty()) {
+                            counts.put(trimmedGame, counts.getOrDefault(trimmedGame, 0L) + 1);
+                        }
+                    }
+                }
+            }
+        }
+        return counts;
     }
 }

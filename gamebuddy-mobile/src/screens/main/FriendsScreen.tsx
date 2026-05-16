@@ -78,7 +78,7 @@ const FriendsScreen = ({ navigation }: any) => {
                     source={{ uri: item.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + item.username }}
                     style={styles.storyAvatar}
                 />
-                {(item.status === 'Online' || item.status === 'In-Game') && (
+                {item.lookingForGroup && (
                     <View style={styles.onlineIndicator}>
                         <Animated.View style={[styles.pulseRing, { transform: [{ scale: pulseAnim }] }]} />
                         <View style={styles.onlineDot} />
@@ -91,8 +91,8 @@ const FriendsScreen = ({ navigation }: any) => {
 
     const renderRequestItem = ({ item }: { item: any }) => (
         <View style={styles.requestCard}>
-            <TouchableOpacity 
-                style={styles.requestUserInfo} 
+            <TouchableOpacity
+                style={styles.requestUserInfo}
                 onPress={() => navigation.navigate('PublicProfile', { userId: item.userId })}
                 activeOpacity={0.7}
             >
@@ -140,12 +140,12 @@ const FriendsScreen = ({ navigation }: any) => {
             />
             <View style={styles.userInfo}>
                 <Text style={styles.username}>{item.username}</Text>
-                <View style={styles.statusRow}>
-                    <View style={[styles.statusDot, item.status === 'Online' ? styles.dotOnline : item.status === 'In-Game' ? styles.dotInGame : styles.dotOffline]} />
-                    <Text style={styles.statusText}>
-                        {item.status === 'Online' ? 'Müsait' : item.status === 'In-Game' ? 'Oyunda' : 'Çevrimdışı'}
-                    </Text>
-                </View>
+                {item.lookingForGroup && (
+                    <View style={styles.lfgFriendBadge}>
+                        <View style={styles.miniDotFriend} />
+                        <Text style={styles.lfgFriendText}>Takım Arıyor</Text>
+                    </View>
+                )}
             </View>
             <Ionicons name="chevron-forward" size={24} color="#64748B" />
         </TouchableOpacity>
@@ -193,17 +193,17 @@ const FriendsScreen = ({ navigation }: any) => {
                                 </View>
                             )}
 
-                            {/* Yeni Eşleşenler Hikayeleri - Arkadaşlar arasından */}
-                            {friends.length > 0 && (
+                            {/* Yeni Eşleşenler Hikayeleri - Sadece Takım Arayanlar */}
+                            {friends.filter(f => f.lookingForGroup).length > 0 && (
                                 <View style={styles.storiesSection}>
-                                    <Text style={styles.storiesTitle}>Bugün Aktif</Text>
+                                    <Text style={styles.storiesTitle}>Takım Arıyor</Text>
                                     <ScrollView
                                         horizontal
                                         showsHorizontalScrollIndicator={false}
                                         style={styles.storiesScroll}
                                         contentContainerStyle={styles.storiesContent}
                                     >
-                                        {friends.slice(0, 10).map((item, index) => (
+                                        {friends.filter(f => f.lookingForGroup).slice(0, 10).map((item, index) => (
                                             <View key={item.userId || index} style={styles.storyWrapper}>
                                                 {renderStoryItem({ item })}
                                             </View>
@@ -331,12 +331,9 @@ const styles = StyleSheet.create({
     avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#0F172A', marginRight: 15 },
     userInfo: { flex: 1 },
     username: { fontSize: 18, fontWeight: '900', color: '#F8FAFC', marginBottom: 4 },
-    statusRow: { flexDirection: 'row', alignItems: 'center' },
-    statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-    dotOnline: { backgroundColor: '#10B981' },
-    dotInGame: { backgroundColor: '#F59E0B' },
-    dotOffline: { backgroundColor: '#64748B' },
-    statusText: { fontSize: 13, color: '#94A3B8', fontWeight: '500' },
+    lfgFriendBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: 'flex-start' },
+    miniDotFriend: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginRight: 4 },
+    lfgFriendText: { fontSize: 10, color: '#10B981', fontWeight: '800' },
     emptyContainer: { alignItems: 'center', marginTop: 60, paddingHorizontal: 30 },
     emptyText: { color: '#64748B', marginTop: 15, fontSize: 15, textAlign: 'center' },
     emptySubtext: { color: '#475569', marginTop: 8, fontSize: 13, textAlign: 'center' }

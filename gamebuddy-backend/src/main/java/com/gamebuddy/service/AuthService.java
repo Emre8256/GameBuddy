@@ -49,7 +49,7 @@ public class AuthService {
                 .bio(request.getBio())
                 .avatarUrl(request.getAvatarUrl())
                 .favoriteGames(request.getFavoriteGames())
-                .status("Online") // Varsayılan durum
+                .lookingForGroup(true) // Varsayılan olarak takım arkadaşı arıyor
                 .build();
         
         user.setProfile(profile);

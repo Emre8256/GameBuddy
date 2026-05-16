@@ -11,6 +11,6 @@ public class ProfileResponse {
     private String bio;
     private String favoriteGames;
     private String avatarUrl;
-    private String status;
+    private boolean lookingForGroup;
     private String friendshipStatus;
 }

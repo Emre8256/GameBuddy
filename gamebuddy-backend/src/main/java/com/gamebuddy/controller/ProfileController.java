@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -36,5 +37,10 @@ public class ProfileController {
     @GetMapping("/{userId}")
     public ResponseEntity<ProfileResponse> getUserProfile(@PathVariable Long userId) {
         return ResponseEntity.ok(profileService.getUserProfile(userId));
+    }
+
+    @GetMapping("/game-counts")
+    public ResponseEntity<Map<String, Long>> getGameCounts() {
+        return ResponseEntity.ok(profileService.getGameCounts());
     }
 }
