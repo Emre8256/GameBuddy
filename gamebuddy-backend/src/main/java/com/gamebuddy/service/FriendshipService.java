@@ -1,7 +1,6 @@
 package com.gamebuddy.service;
 
 import com.gamebuddy.dto.FriendshipRequest;
-import com.gamebuddy.dto.PlayerMatchResponse;
 import com.gamebuddy.entity.Friendship;
 import com.gamebuddy.entity.User;
 import com.gamebuddy.repository.FriendshipRepository;

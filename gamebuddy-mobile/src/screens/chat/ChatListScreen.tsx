@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getConversations } from '../../services/chatService';
+import { webSocketService } from '../../services/webSocketService';
 
 const ChatListScreen = ({ navigation }: any) => {
     const [conversations, setConversations] = useState<any[]>([]);
@@ -19,17 +20,32 @@ const ChatListScreen = ({ navigation }: any) => {
         ).start();
     }, []);
 
-    const fetchConversations = async () => {
-        setLoading(true);
+    const fetchConversations = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const data = await getConversations();
             setConversations(data || []);
         } catch (error) {
             console.error(error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const handleEvent = () => {
+            fetchConversations(true);
+        };
+        webSocketService.addEventListener('message', handleEvent);
+        webSocketService.addEventListener('status_update', handleEvent);
+        webSocketService.addEventListener('read_receipt', handleEvent);
+
+        return () => {
+            webSocketService.removeEventListener('message', handleEvent);
+            webSocketService.removeEventListener('status_update', handleEvent);
+            webSocketService.removeEventListener('read_receipt', handleEvent);
+        };
+    }, []);
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {

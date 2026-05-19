@@ -26,6 +26,7 @@ CREATE DATABASE gamebuddy_db;
 ### 2. Backend'i Çalıştırma
 Spring Boot projesinin bulunduğu klasöre gidin ve projeyi ayağa kaldırın:
 ```bash
+apiConfig.ts deki IP adresini ayarlayın
 cd gamebuddy-backend
 mvn spring-boot:run
 ```

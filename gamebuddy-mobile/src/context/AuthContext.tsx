@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { webSocketService } from '../services/webSocketService';
 
 type AuthContextType = {
     isLoading: boolean;
@@ -30,6 +31,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
         checkToken();
     }, []);
+
+    useEffect(() => {
+        if (userToken) {
+            webSocketService.connect(userToken);
+        } else {
+            webSocketService.disconnect();
+        }
+        return () => {
+            webSocketService.disconnect();
+        };
+    }, [userToken]);
 
     const contextValue = React.useMemo(() => ({
         isLoading,

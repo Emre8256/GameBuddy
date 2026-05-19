@@ -3,6 +3,7 @@ import { View, Text, FlatList, StyleSheet, ActivityIndicator, Image, TouchableOp
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getFriends, getPendingRequests, acceptFriendRequest, declineFriendRequest } from '../../services/friendshipService';
+import { webSocketService } from '../../services/webSocketService';
 
 const FriendsScreen = ({ navigation }: any) => {
     const [friends, setFriends] = useState<any[]>([]);
@@ -20,8 +21,8 @@ const FriendsScreen = ({ navigation }: any) => {
         ).start();
     }, []);
 
-    const fetchData = async () => {
-        setLoading(true);
+    const fetchData = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const [friendsData, pendingData] = await Promise.all([
                 getFriends(),
@@ -32,9 +33,19 @@ const FriendsScreen = ({ navigation }: any) => {
         } catch (error) {
             console.error(error);
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const handleStatusUpdate = () => {
+            fetchData(true);
+        };
+        webSocketService.addEventListener('status_update', handleStatusUpdate);
+        return () => {
+            webSocketService.removeEventListener('status_update', handleStatusUpdate);
+        };
+    }, []);
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {

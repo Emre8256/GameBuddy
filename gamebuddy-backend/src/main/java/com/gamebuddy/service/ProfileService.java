@@ -10,6 +10,8 @@ import com.gamebuddy.repository.FriendshipRepository;
 import com.gamebuddy.repository.ProfileRepository;
 import com.gamebuddy.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import com.gamebuddy.event.StatusUpdateEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -30,6 +32,7 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final FriendshipRepository friendshipRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private User getAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -55,7 +58,16 @@ public class ProfileService {
         profile.setAvatarUrl(request.getAvatarUrl());
         profile.setLookingForGroup(request.isLookingForGroup());
 
-        profileRepository.save(profile);
+        Profile savedProfile = profileRepository.save(profile);
+        
+        // Publish StatusUpdateEvent for WebSocket broadcast
+        eventPublisher.publishEvent(new StatusUpdateEvent(
+                user.getId(),
+                user.getUsername(),
+                savedProfile.getAvatarUrl(),
+                savedProfile.isLookingForGroup(),
+                savedProfile.getFavoriteGames()
+        ));
     }
 
     public ProfileResponse getMyProfile() {

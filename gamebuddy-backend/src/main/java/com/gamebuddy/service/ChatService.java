@@ -10,6 +10,8 @@ import com.gamebuddy.repository.FriendshipRepository;
 import com.gamebuddy.repository.MessageRepository;
 import com.gamebuddy.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import com.gamebuddy.event.ReadReceiptEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class ChatService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final FriendshipRepository friendshipRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private User getAuthenticatedUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -87,6 +90,37 @@ public class ChatService {
                 .build();
     }
 
+    public MessageResponse sendMessage(Long senderId, Long receiverId, String content) {
+        if (content == null || content.length() > 500) {
+            throw new IllegalArgumentException("Message content must be between 1 and 500 characters.");
+        }
+
+        User sender = userRepository.findById(senderId)
+                .orElseThrow(() -> new RuntimeException("Sender not found"));
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new RuntimeException("Receiver not found"));
+
+        // Arkadaş kontrolü
+        checkFriendship(sender, receiver);
+
+        Message message = new Message();
+        message.setSender(sender);
+        message.setReceiver(receiver);
+        message.setContent(content);
+        message.setTimestamp(LocalDateTime.now());
+
+        Message savedMessage = messageRepository.save(message);
+
+        return MessageResponse.builder()
+                .id(savedMessage.getId())
+                .senderId(sender.getId())
+                .receiverId(receiver.getId())
+                .content(savedMessage.getContent())
+                .timestamp(savedMessage.getTimestamp())
+                .isRead(savedMessage.isRead())
+                .build();
+    }
+
     public List<MessageResponse> getChatHistory(Long targetUserId) {
         User currentUser = getAuthenticatedUser();
         User targetUser = userRepository.findById(targetUserId)
@@ -98,12 +132,18 @@ public class ChatService {
         List<Message> messages = messageRepository.findChatHistory(currentUser, targetUser);
 
         // Mesajları okundu olarak işaretle
-        messages.stream()
-                .filter(m -> m.getReceiver().getId().equals(currentUser.getId()) && !m.isRead())
-                .forEach(m -> {
-                    m.setRead(true);
-                    messageRepository.save(m);
-                });
+        boolean markedAnyAsRead = false;
+        for (Message m : messages) {
+            if (m.getReceiver().getId().equals(currentUser.getId()) && !m.isRead()) {
+                m.setRead(true);
+                messageRepository.save(m);
+                markedAnyAsRead = true;
+            }
+        }
+
+        if (markedAnyAsRead) {
+            eventPublisher.publishEvent(new ReadReceiptEvent(targetUser.getId(), currentUser.getId()));
+        }
 
         return messages.stream().map(m -> MessageResponse.builder()
                 .id(m.getId())

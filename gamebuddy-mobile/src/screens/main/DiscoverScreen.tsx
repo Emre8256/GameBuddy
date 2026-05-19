@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import { POPULAR_GAMES } from '../../utils/games';
 import { getGameCounts } from '../../services/profileService';
+import { webSocketService } from '../../services/webSocketService';
 
 const DiscoverScreen = ({ navigation }: any) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -21,6 +22,16 @@ const DiscoverScreen = ({ navigation }: any) => {
             fetchCounts();
         }, [])
     );
+
+    useEffect(() => {
+        const handleStatusUpdate = () => {
+            fetchCounts();
+        };
+        webSocketService.addEventListener('status_update', handleStatusUpdate);
+        return () => {
+            webSocketService.removeEventListener('status_update', handleStatusUpdate);
+        };
+    }, []);
 
     const filteredGames = POPULAR_GAMES.filter(game => 
         game.name.toLowerCase().includes(searchQuery.toLowerCase())

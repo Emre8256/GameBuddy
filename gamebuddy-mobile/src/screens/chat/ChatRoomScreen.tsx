@@ -9,6 +9,7 @@ import { getChatHistory, sendMessage } from '../../services/chatService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { webSocketService } from '../../services/webSocketService';
 
 const ChatRoomScreen = ({ route, navigation }: any) => {
     const { userId, username, lookingForGroup: initialLfg, avatarUrl: initialAvatarUrl } = route.params;
@@ -16,6 +17,7 @@ const ChatRoomScreen = ({ route, navigation }: any) => {
     const [content, setContent] = useState('');
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+    const currentUserIdRef = useRef<number | null>(null);
     const [targetUser, setTargetUser] = useState<any>({
         lookingForGroup: initialLfg,
         avatarUrl: initialAvatarUrl
@@ -50,23 +52,78 @@ const ChatRoomScreen = ({ route, navigation }: any) => {
     };
 
     useEffect(() => {
-        const init = async () => {
+        let active = true;
+
+        const initChatRoom = async () => {
             const userDataStr = await AsyncStorage.getItem('userData');
             if (userDataStr) {
                 const userData = JSON.parse(userDataStr);
-                setCurrentUserId(userData.userId);
+                if (active) {
+                    setCurrentUserId(userData.userId);
+                    currentUserIdRef.current = userData.userId;
+                }
             }
+            
+            // Fetch initial history
             fetchHistory();
             fetchTargetUser();
         };
-        init();
 
-        const interval = setInterval(() => {
-            fetchHistory(false);
+        initChatRoom();
+
+        const handleMessage = (data: any) => {
+            const msgSenderId = data.senderId;
+            const msgReceiverId = data.receiverId;
+            const myUserId = currentUserIdRef.current;
+            
+            if (msgSenderId === userId || (myUserId && msgSenderId === myUserId && msgReceiverId === userId)) {
+                setMessages((prev) => {
+                    if (prev.some((m) => m.id === data.id)) return prev;
+                    return [...prev, data];
+                });
+                
+                if (msgSenderId === userId) {
+                    getChatHistory(userId).catch(console.error);
+                }
+            }
+        };
+
+        const handleStatusUpdate = (data: any) => {
+            if (data.userId === userId) {
+                setTargetUser({
+                    lookingForGroup: data.lookingForGroup,
+                    avatarUrl: data.avatarUrl
+                });
+            }
+        };
+
+        const handleReadReceipt = (data: any) => {
+            if (data.readerId === userId) {
+                const myUserId = currentUserIdRef.current;
+                setMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.senderId === myUserId ? { ...msg, isRead: true } : msg
+                    )
+                );
+            }
+        };
+
+        webSocketService.addEventListener('message', handleMessage);
+        webSocketService.addEventListener('status_update', handleStatusUpdate);
+        webSocketService.addEventListener('read_receipt', handleReadReceipt);
+
+        const profileInterval = setInterval(() => {
             fetchTargetUser();
-        }, 3000);
-        return () => clearInterval(interval);
-    }, []);
+        }, 10000);
+
+        return () => {
+            active = false;
+            clearInterval(profileInterval);
+            webSocketService.removeEventListener('message', handleMessage);
+            webSocketService.removeEventListener('status_update', handleStatusUpdate);
+            webSocketService.removeEventListener('read_receipt', handleReadReceipt);
+        };
+    }, [userId]);
 
     const fetchHistory = async (showLoading = true) => {
         if (showLoading) setLoading(true);
@@ -91,20 +148,36 @@ const ChatRoomScreen = ({ route, navigation }: any) => {
             Animated.timing(sendBtnScale, { toValue: 1, duration: 60, useNativeDriver: true }),
         ]).start();
 
-        try {
-            await sendMessage(userId, msgText);
-            fetchHistory(false);
-        } catch (error) {
-            // Send error handled silently
+        if (webSocketService.isOpen()) {
+            const payload = {
+                receiverId: userId,
+                content: msgText
+            };
+            webSocketService.send(payload);
+        } else {
+            try {
+                const response = await sendMessage(userId, msgText);
+                setMessages((prev) => [...prev, response]);
+            } catch (error) {
+                // Send error handled silently
+            }
         }
     };
 
     const handleQuickReply = async (reply: string) => {
-        try {
-            await sendMessage(userId, reply);
-            fetchHistory(false);
-        } catch (error) {
-            // Quick reply error handled silently
+        if (webSocketService.isOpen()) {
+            const payload = {
+                receiverId: userId,
+                content: reply
+            };
+            webSocketService.send(payload);
+        } else {
+            try {
+                const response = await sendMessage(userId, reply);
+                setMessages((prev) => [...prev, response]);
+            } catch (error) {
+                // Quick reply error handled silently
+            }
         }
     };
 

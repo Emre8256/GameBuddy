@@ -74,27 +74,53 @@ const ProfileScreen = () => {
         loadProfile();
     }, []);
 
-    const toggleGame = (gameName: string) => {
-        if (selectedGames.includes(gameName)) {
-            setSelectedGames(selectedGames.filter(g => g !== gameName));
-        } else {
-            setSelectedGames([...selectedGames, gameName]);
-            setGameSearch('');
+    const saveProfileFields = async (
+        newBio: string,
+        newGames: string[],
+        newAvatar: string,
+        newLfg: boolean,
+        silent = true
+    ) => {
+        try {
+            const favoriteGamesStr = newGames.join(', ');
+            await updateProfile(newBio, favoriteGamesStr, newAvatar, newLfg, null, favoriteGamesStr);
+            if (!silent) {
+                Alert.alert("Başarılı", "Biyografiniz başarıyla güncellendi.");
+            }
+        } catch (error: any) {
+            if (!silent) {
+                Alert.alert("Hata", error as string);
+            } else {
+                console.log("Auto-save error:", error);
+            }
         }
     };
 
-    const handleSave = async () => {
+    const selectAvatar = async (url: string) => {
+        setAvatarUrl(url);
+        await saveProfileFields(bio, selectedGames, url, lookingForGroup);
+    };
+
+    const toggleGame = async (gameName: string) => {
+        let nextGames: string[];
+        if (selectedGames.includes(gameName)) {
+            nextGames = selectedGames.filter(g => g !== gameName);
+        } else {
+            nextGames = [...selectedGames, gameName];
+            setGameSearch('');
+        }
+        setSelectedGames(nextGames);
+        await saveProfileFields(bio, nextGames, avatarUrl, lookingForGroup);
+    };
+
+    const handleSaveBio = async () => {
         Animated.sequence([
             Animated.timing(saveScale, { toValue: 0.95, duration: 80, useNativeDriver: true }),
             Animated.timing(saveScale, { toValue: 1, duration: 80, useNativeDriver: true }),
         ]).start();
         setSaving(true);
         try {
-            const favoriteGamesStr = selectedGames.join(', ');
-            await updateProfile(bio, favoriteGamesStr, avatarUrl, lookingForGroup, null, favoriteGamesStr);
-            Alert.alert("Başarılı", "Profiliniz başarıyla güncellendi.");
-        } catch (error: any) {
-            Alert.alert("Hata", error as string);
+            await saveProfileFields(bio, selectedGames, avatarUrl, lookingForGroup, false);
         } finally {
             setSaving(false);
         }
@@ -105,7 +131,11 @@ const ProfileScreen = () => {
         setUserToken(null);
     };
 
-    const toggleLFG = () => setLookingForGroup(prev => !prev);
+    const toggleLFG = async () => {
+        const nextLfg = !lookingForGroup;
+        setLookingForGroup(nextLfg);
+        await saveProfileFields(bio, selectedGames, avatarUrl, nextLfg);
+    };
 
     const filteredSearchGames = gameSearch.length > 0
         ? POPULAR_GAMES.filter(g => g.name.toLowerCase().includes(gameSearch.toLowerCase()) && !selectedGames.includes(g.name))
@@ -183,7 +213,7 @@ const ProfileScreen = () => {
                     </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarScroll} contentContainerStyle={{ paddingRight: 10 }}>
                         {AVATAR_OPTIONS.map((url, idx) => (
-                            <TouchableOpacity key={idx} onPress={() => setAvatarUrl(url)} activeOpacity={0.8}>
+                            <TouchableOpacity key={idx} onPress={() => selectAvatar(url)} activeOpacity={0.8}>
                                 <View style={[styles.avatarOptionWrap, avatarUrl === url && styles.avatarOptionWrapSelected]}>
                                     <Image source={{ uri: url }} style={styles.avatarOption} />
                                 </View>
@@ -217,6 +247,23 @@ const ProfileScreen = () => {
                             numberOfLines={4}
                         />
                     </View>
+                    <Animated.View style={{ transform: [{ scale: saveScale }], marginTop: 12 }}>
+                        <TouchableOpacity onPress={handleSaveBio} disabled={saving} activeOpacity={0.85}>
+                            <LinearGradient
+                                colors={['#F472B6', '#EC4899']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.saveBioButton}
+                            >
+                                {saving ? <ActivityIndicator color="#FFFFFF" /> : (
+                                    <>
+                                        <Ionicons name="checkmark-done-circle" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                        <Text style={styles.saveBioButtonText}>Biyografiyi Kaydet</Text>
+                                    </>
+                                )}
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </Animated.View>
                 </View>
 
                 {/* ── OYUN KÜTÜPHANESİ ── */}
@@ -304,24 +351,6 @@ const ProfileScreen = () => {
 
                 {/* ── ACTIONS ── */}
                 <View style={styles.actionSection}>
-                    <Animated.View style={{ transform: [{ scale: saveScale }] }}>
-                        <TouchableOpacity onPress={handleSave} disabled={saving} activeOpacity={0.85}>
-                            <LinearGradient
-                                colors={['#818CF8', '#6366F1', '#4F46E5']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.saveButton}
-                            >
-                                {saving ? <ActivityIndicator color="#FFFFFF" /> : (
-                                    <>
-                                        <Ionicons name="checkmark-done-circle" size={22} color="#FFFFFF" style={{ marginRight: 10 }} />
-                                        <Text style={styles.saveButtonText}>Profilini Güncelle</Text>
-                                    </>
-                                )}
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </Animated.View>
-
                     <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
                         <Ionicons name="log-out-outline" size={20} color="#EF4444" style={{ marginRight: 8 }} />
                         <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
@@ -407,8 +436,8 @@ const styles = StyleSheet.create({
 
     // ── Actions ──
     actionSection: { marginTop: 8, marginBottom: 10 },
-    saveButton: { paddingVertical: 18, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...Platform.select({ ios: { shadowColor: '#6366F1', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10 }, android: { elevation: 6 } }) },
-    saveButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+    saveBioButton: { paddingVertical: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...Platform.select({ ios: { shadowColor: '#EC4899', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6 }, android: { elevation: 4 } }) },
+    saveBioButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
     logoutButton: { paddingVertical: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, backgroundColor: 'rgba(239,68,68,0.06)', borderWidth: 1, borderColor: 'rgba(239,68,68,0.12)' },
     logoutButtonText: { color: '#EF4444', fontSize: 15, fontWeight: '700' },
 });

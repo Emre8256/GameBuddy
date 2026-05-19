@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { discoverPlayers } from '../../services/profileService';
 import { sendFriendRequest, getFriendshipStatus, acceptFriendRequest } from '../../services/friendshipService';
+import { webSocketService } from '../../services/webSocketService';
 
 const GamePlayersScreen = ({ route, navigation }: any) => {
     const { gameName, gameImage } = route.params;
@@ -29,6 +30,16 @@ const GamePlayersScreen = ({ route, navigation }: any) => {
             fetchPlayers(players.length > 0);
         }, [gameName])
     );
+
+    useEffect(() => {
+        const handleStatusUpdate = () => {
+            fetchPlayers(true);
+        };
+        webSocketService.addEventListener('status_update', handleStatusUpdate);
+        return () => {
+            webSocketService.removeEventListener('status_update', handleStatusUpdate);
+        };
+    }, [gameName]);
 
     const handleSendRequest = async (userId: number) => {
         setActionLoading(prev => ({ ...prev, [userId]: true }));
